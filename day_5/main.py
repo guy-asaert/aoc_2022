@@ -3,7 +3,7 @@ from collections import defaultdict
 import re
 
 
-def run(part1 = False):
+def run(part1=False):
     stacks = defaultdict(list)
     lines = read_lines(__file__, False)
     for line_no, line in enumerate(lines):
