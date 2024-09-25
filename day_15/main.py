@@ -1,5 +1,3 @@
-import email.errors
-
 from utils import iter_lines
 import re
 from collections import namedtuple, defaultdict
@@ -15,7 +13,6 @@ class CaveBase:
 
 
 class Cave(CaveBase):
-
     def __init__(self, sensors):
         super().__init__(sensors)
         self.layout = defaultdict(dict)
