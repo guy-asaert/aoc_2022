@@ -1,12 +1,12 @@
 from utils import iter_lines
 from collections import namedtuple
-from functools import lru_cache
+# from functools import lru_cache
+import itertools
 
 ValveDetails = namedtuple("ValveDetails", "ValveFlow ConnectingValves")
 
 
 valve_distances = dict()
-best_solution = dict()
 
 def get_distances(node_name, puzzle_details, distances, distance):
     for valve in puzzle_details[node_name].ConnectingValves:
@@ -24,10 +24,10 @@ def _position_value(valves_left, valve_distances, minutes_left, puzzle_details):
     return pos_value
 
 def find_highest_flow(current_valve, valves_to_visit, puzzle_details, minutes_left, depth):
-    global valve_distances, best_solution
+    global valve_distances
 
-    if depth == 1:
-        print(f"{current_valve}")
+    # if depth == 1:
+    #     print(f"{current_valve}")
 
     # calculate the remaining total flow
     # total_flow_left = sum([det.ValveFlow for k, det in puzzle_details.items() if k not in visited_valves])
@@ -61,9 +61,52 @@ def find_highest_flow(current_valve, valves_to_visit, puzzle_details, minutes_le
     return highest_flow
 
 
+def find_highest_flow_part2(
+        current_valve1, current_valve2,
+        minutes_left1, minutes_left2,
+        valves_to_visit, puzzle_details, depth):
+    global valve_distances
+
+    if depth == 1:
+        print(f"{current_valve1}/{current_valve2}")
+
+    l_valves_to_visit = valves_to_visit.difference([current_valve1, current_valve2])
+
+    if not valves_to_visit or (minutes_left1 <= 1 and minutes_left2 <= 1):
+        return 0
+    
+    # determine the distances to all the valves
+    for current_valve in (current_valve1, current_valve2):
+        if not current_valve in valve_distances:
+            distances = dict()
+            get_distances(current_valve, puzzle_details, distances, 1)
+            valve_distances[current_valve] = distances
+
+    highest_flow = 0
+
+    for valve1, valve2  in itertools.permutations(sorted(l_valves_to_visit), 2):
+        distance1 = valve_distances[current_valve1][valve1]
+        l_minutes_left1 = minutes_left1 - (distance1 + 1)
+        distance2 = valve_distances[current_valve2][valve2]
+        l_minutes_left2 = minutes_left2 - (distance2 + 1)
+
+        if puzzle_details[valve1].ValveFlow == 0 or l_minutes_left1 < 1 or \
+            puzzle_details[valve2].ValveFlow == 0 or l_minutes_left2 < 1:
+            continue
+
+        flow = 0
+        flow += l_minutes_left1 * puzzle_details[valve1].ValveFlow
+        flow += l_minutes_left2 * puzzle_details[valve2].ValveFlow
+        flow += find_highest_flow_part2( 
+            valve1, valve2, l_minutes_left1, l_minutes_left2, l_valves_to_visit, puzzle_details, depth + 1 )
+        if flow > highest_flow:
+            highest_flow = flow
+
+    return highest_flow
+
 def solve():
     puzzle_details = dict()
-    for line in iter_lines(__file__, '_sample.txt'):
+    for line in iter_lines(__file__, '_puzzle.txt'):
         part1, part2 = line.split(';')
         valve_name = part1[6:8]
         valve_flow = int(part1.split('=')[1])
@@ -78,8 +121,9 @@ def solve():
     
     first_valve = 'AA'
 
-    visit_valves = set(puzzle_details.keys()).difference([first_valve])
-    highest_flow = find_highest_flow(first_valve, visit_valves, puzzle_details, 30, 0)
+    visit_valves = set([k for k, v in puzzle_details.items() if v.ValveFlow > 0])
+    # highest_flow = find_highest_flow(first_valve, visit_valves, puzzle_details, 30, 0)
+    highest_flow = find_highest_flow_part2(first_valve, first_valve, 26, 26, visit_valves, puzzle_details,  0)
     print(highest_flow)
 
 
