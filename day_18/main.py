@@ -1,5 +1,7 @@
-
-from utils import iter_lines
+import sys
+from collections import namedtuple
+from itertools import product
+# from utils import iter_lines
 
 PUZZLE_SAMPLE = """2,2,2
 1,2,2
@@ -19,62 +21,64 @@ PUZZLE_SAMPLE = """2,2,2
 def solve():
 
     outside_walls = None
-    blocks = []
+    cubes = []
 
-    # for row in PUZZLE_SAMPLE.split('\n'):
-    for row in iter_lines(__file__, '_puzzle.txt'):
-        x, y, z = map(lambda v: 2 * int(v), row.split(','))
-        blocks.append((x, y, z))
-        walls = set([
-                (x - 2, y - 1, z - 1),
-                (x,     y - 1, z - 1),
-                (x - 1, y - 2, z - 1),
-                (x - 1, y,     z - 1),
-                (x - 1, y - 1, z - 2),
-                (x - 1, y - 1, z),
-            ])
+    unique_walls = list()
 
-        if not outside_walls:
-            outside_walls = walls
-        else:
-            outside_walls.symmetric_difference_update(walls)
+    touching_walls = 0
+    for row in PUZZLE_SAMPLE.split('\n'):
+    # for row in iter_lines(__file__, '_puzzle.txt'):
+        x, y, z = map(int, row.split(','))
+
+        wall1 = set(product([x - 1],    [y - 1, y], [z - 1, z]))
+        wall2 = set(product([x],        [y - 1, y], [z - 1, z]))
+        wall3 = set(product([x - 1, x], [y - 1],    [z - 1, z]))
+        wall4 = set(product([x - 1, x], [y],        [z - 1, z]))
+        wall5 = set(product([x - 1, x], [y - 1, y], [z - 1]))
+        wall6 = set(product([x - 1, x], [y - 1, y], [z]))
+
+        cube_walls = [wall1, wall2, wall3, wall4, wall5, wall6]
+
+        for cube_wall in cube_walls:
+            if cube_wall not in unique_walls:
+                unique_walls.append(cube_wall)
+            else:
+                touching_walls += 1
+                unique_walls.remove(cube_wall)
+
+    print(len(unique_walls))
+
+    # find all the walls that are on the outside
+    start_wall = None
+    curr_min_x = sys.maxsize
+    for process_this_wall in unique_walls:
+        min_x = min(process_this_wall, key=lambda x: x[0])[0]
+        if min_x < curr_min_x:
+            start_wall = process_this_wall
+            curr_min_x = min_x
+
+    process_walls = [start_wall]
+    unique_walls.remove(start_wall)
+    outside_walls = list()
+
+    while process_walls:
+        process_this_wall = process_walls.pop(0)
+        outside_walls.append(process_this_wall)
+
+        # find all the adjacent walls
+        adjacent_walls = []
+        for other_wall in unique_walls:
+            if process_this_wall == other_wall:
+                continue
+
+            if len(process_this_wall.intersection(other_wall)) == 2:
+                adjacent_walls.append(other_wall)
+        
+        for adjacent_wall in adjacent_walls:
+            unique_walls.remove(adjacent_wall)
+            process_walls.append(adjacent_wall)
+
     print(len(outside_walls))
-
-    # to find trapped water we need to check all cubes inside the walls and if the symetric difference removes size walls
-    
-    min_x = min([x for x, _, _ in outside_walls])
-    max_x = max([x for x, _, _ in outside_walls])
-    min_y = min([y for _, y, _ in outside_walls])
-    max_y = max([y for _, y, _ in outside_walls])
-    min_z = min([z for _, _, z in outside_walls])
-    max_z = max([z for _, _, z in outside_walls])
-
-    trapped_water = 0
-    trapped_blocks_walls = None
-    for x in range(min_x, max_x + 1):
-        x *= 2
-        for y in range(min_y, max_y + 1):
-            y *= 2
-            for z in range(min_z, max_z + 1):
-                z *= 2
-                block_walls = set([
-                        (x - 2, y - 1, z - 1),
-                        (x,     y - 1, z - 1),
-                        (x - 1, y - 2, z - 1),
-                        (x - 1, y,     z - 1),
-                        (x - 1, y - 1, z - 2),
-                        (x - 1, y - 1, z),
-                    ])
-                matching_walls = outside_walls.intersection(block_walls)
-                if len(matching_walls) == 6:
-                    if (x, y, z) not in blocks:
-                        trapped_water += 1
-                        if trapped_blocks_walls is None:
-                            trapped_blocks_walls = block_walls
-                        else:
-                            trapped_blocks_walls.symmetric_difference_update(block_walls)
-
-    print(len(outside_walls) - len(trapped_blocks_walls))
 
 if __name__ == '__main__':
     solve()
