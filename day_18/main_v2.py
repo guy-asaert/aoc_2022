@@ -53,14 +53,14 @@ def is_enclosed(cube, cube_coordinates, processed_enclosed_cubes):
         (0, 0, 1), (0, 0, -1)
     ]
 
-    queue = deque([cube])
+    processing_queue = deque([cube])
     visited = set()
     min_x, max_x = min(x for x, _, _ in cube_coordinates), max(x for x, _, _ in cube_coordinates)
     min_y, max_y = min(y for _, y, _ in cube_coordinates), max(y for _, y, _ in cube_coordinates)
     min_z, max_z = min(z for _, _, z in cube_coordinates), max(z for _, _, z in cube_coordinates)
 
-    while queue:
-        current = queue.popleft()
+    while processing_queue:
+        current = processing_queue.popleft()
         if current in visited:
             continue
         visited.add(current)
@@ -72,7 +72,7 @@ def is_enclosed(cube, cube_coordinates, processed_enclosed_cubes):
         for dx, dy, dz in directions:
             neighbor = (x + dx, y + dy, z + dz)
             if neighbor not in cube_coordinates and neighbor not in visited:
-                queue.append(neighbor)
+                processing_queue.append(neighbor)
 
     processed_enclosed_cubes.extend(visited)
     return visited
