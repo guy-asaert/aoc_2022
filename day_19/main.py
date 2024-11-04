@@ -5,6 +5,7 @@ from collections import defaultdict
 import copy
 from enum import Enum       
 import io
+from utils import iter_lines
 
 
 PUZZLE_INPUT_SAMPLE = '''Blueprint 1: Each ore robot costs 4 ore. Each clay robot costs 2 ore. Each obsidian robot costs 3 ore and 14 clay. Each geode robot costs 2 ore and 7 obsidian.
@@ -43,6 +44,9 @@ RESOURCE_ROBOT_MAP = {
     EnumResources.GEODE: EnumRobot.GEODE_ROBOT
 }
 
+
+MAX_MINUTES = 32
+
 def try_make_robot(robot_type: EnumRobot,
                    resources: dict[EnumResources, int],
                    robots: dict[EnumRobot, int],
@@ -61,10 +65,6 @@ def try_make_robot(robot_type: EnumRobot,
 
     # check if we have all the resources but not enough
     if min(robot_resource_count) == 0:
-        # do we have robots that can build the resources we need?
-        # for resource, _ in robot_costs.items():
-        #     if not resources.get(resource, 0) and not robots.get(ROBOT_RESOURCE_MAP[resource], 0):
-        #         return EnumRobotBuildResult.NO_RESOURCES
         return EnumRobotBuildResult.NOT_ENOUGH_RESOURCES
     elif min(robot_resource_count) >= 2:
         return EnumRobotBuildResult.TOO_MANY_RESOURCES
@@ -81,13 +81,11 @@ def run_simulation(robot_type, time_passed, resources, robots, robot_costs, memo
     # make robot
     result = try_make_robot(robot_type, resources, robots, robot_costs)
 
+    memo[state] = result
     # if we can made more than 1 robot at a time, we can ignore this state
     if result == EnumRobotBuildResult.TOO_MANY_RESOURCES:
-        memo[state] = result
         return result
     
-    memo[state] = result
-
     # make resources with the robots we have
     for building_robot_type, count in robots.items():
         resources[ROBOT_RESOURCE_MAP[building_robot_type]] += count
@@ -96,7 +94,7 @@ def run_simulation(robot_type, time_passed, resources, robots, robot_costs, memo
 
     if result != EnumRobotBuildResult.SUCCESS:
         # if we have the robots that can build the resources we need, we can wait for the resources to be built and try again
-        if time_passed == 24:
+        if time_passed == MAX_MINUTES:
             for resource, count in resources.items():
                 max_resources[resource] = max(max_resources.get(resource, 0), count)
             return result
@@ -105,13 +103,13 @@ def run_simulation(robot_type, time_passed, resources, robots, robot_costs, memo
             if not robots.get(RESOURCE_ROBOT_MAP[resource], 0):
                 return result
         # try again after adding more resources
-        return run_simulation(robot_type, time_passed, copy.copy(resources), robots, robot_costs, memo, max_resources)
+        return run_simulation(robot_type, time_passed, copy.copy(resources), copy.copy(robots), robot_costs, memo, max_resources)
 
     robots[robot_type] += 1
     for resource, cost in robot_costs[robot_type].items():
         resources[resource] -= int(cost)
 
-    if time_passed == 24:
+    if time_passed == MAX_MINUTES:
         for resource, count in resources.items():
             max_resources[resource] = max(max_resources.get(resource, 0), count)
         return result
@@ -124,8 +122,12 @@ def run_simulation(robot_type, time_passed, resources, robots, robot_costs, memo
 
 
 def run():
+    total_quality = 0
+
     for blueprint in PUZZLE_INPUT_SAMPLE.split('\n'):
+    # for blueprint in list(iter_lines(__file__, '_puzzle.txt'))[:3]:
         bp_id, code = blueprint.split(': ')
+        bp_no = int(bp_id[10:])
         robot_cost_codes = code.split('.')
         robot_costs = defaultdict(dict)
         for robot_cost_code in robot_cost_codes:
@@ -140,14 +142,24 @@ def run():
         # we need to simlate al the ways the robots can be built and see how we can build the most 
         # number of geodes
 
-        robots = defaultdict(lambda: 0)
-        robots[EnumRobot.ORE_ROBOT] += 1
-        resources = defaultdict(lambda: 0)
-        time_passed = 0
         memo = {}
         max_resources = dict()
+        robots = defaultdict(lambda: 0)
+        robots[EnumRobot.ORE_ROBOT] = 1
+        resources = defaultdict(lambda: 0)
+        time_passed = 0
         run_simulation(EnumRobot.ORE_ROBOT, time_passed, resources, robots, robot_costs, memo, max_resources)
+
+        # robots = defaultdict(lambda: 0)
+        # robots[EnumRobot.ORE_ROBOT] = 1
+        # resources = defaultdict(lambda: 0)
+        # time_passed = 0
+        # run_simulation(EnumRobot.CLAY_ROBOT, time_passed, resources, robots, robot_costs, memo, max_resources)
+
         print(f'Completed simulation {bp_id}. Max Geodes: {max_resources.get(EnumResources.GEODE, 0)}')
+        total_quality += max_resources.get(EnumResources.GEODE, 0) * bp_no
+
+    print(f'Total quality = {total_quality}')
 
 if __name__ == '__main__':
     # pr = cProfile.Profile()
@@ -159,3 +171,9 @@ if __name__ == '__main__':
     # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
     # ps.print_stats()
     # print(s.getvalue())
+
+
+# Completed simulation Blueprint 1. Max Geodes: 32
+# Completed simulation Blueprint 2. Max Geodes: 21
+# Completed simulation Blueprint 3. Max Geodes: 28
+# Total quality = 158  -- 18,816
