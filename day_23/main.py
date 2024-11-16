@@ -63,13 +63,17 @@ def run():
     movement_start_index = 0
 
     print("Initial state")
-    elves_coordinates = [coords[-1] for coords in elves_location.values()]
-    print_grid(elves_coordinates)
+    elves_coordinates = set([coords[-1] for coords in elves_location.values()])
+    # print_grid(elves_coordinates)
 
-    for i in range(10):
-        elves_coordinates = [coords[-1] for coords in elves_location.values()]
+    post_elves_coordinates = []
+
+    round = 0
+    while elves_coordinates != post_elves_coordinates:
+        round += 1
+        elves_coordinates = set([coords[-1] for coords in elves_location.values()])
         
-        print (f'Round {i + 1}')
+        print (f'Round {round}')
         for elf_id, coords in elves_location.items():
             assert len(coords) == 1, "Too many coords for elf"
             x = coords[0].x
@@ -101,23 +105,23 @@ def run():
 
             assert len(elves_location[elf_id]) == 1, "Should only have one coord"
 
-        print_grid(elves_coordinates)
+        # print_grid(elves_coordinates)
         movement_start_index += 1
         movement_start_index %= 4
+        post_elves_coordinates = set([coords[-1] for coords in elves_location.values()])
 
     # print the elves location
-    elves_coordinates = [coords[-1] for coords in elves_location.values()]
-    min_x = min([coords.x for coords in elves_coordinates])
-    max_x = max([coords.x for coords in elves_coordinates])
-    min_y = min([coords.y for coords in elves_coordinates])
-    max_y = max([coords.y for coords in elves_coordinates])
+    # elves_coordinates = [coords[-1] for coords in elves_location.values()]
+    # min_x = min([coords.x for coords in elves_coordinates])
+    # max_x = max([coords.x for coords in elves_coordinates])
+    # min_y = min([coords.y for coords in elves_coordinates])
+    # max_y = max([coords.y for coords in elves_coordinates])
     # for y in range(min_y, max_y + 1):
     #     for x in range(min_x, max_x + 1):
     #         if Coords(x, y) not in elves_coordinates:
     #             empty_ground_tiles += 1
-
-    print(f'Empty ground tiles: {(max_x - min_x + 1) * (max_y - min_y + 1) - len(elves_coordinates)}')
-    print(f'4164 is too high :-(')
+    # print(f'Empty ground tiles: {(max_x - min_x + 1) * (max_y - min_y + 1) - len(elves_coordinates)}')
+    print(f'Number of rounds: {round}')
 
 if __name__ == "__main__":
     run()
